@@ -1,36 +1,45 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🔐 PhantomPay — Private Payroll & Bounty Protocol
 
-## Getting Started
+**Built for the Superteam Colosseum Hackathon (Privacy Track powered by MagicBlock)**
 
-First, run the development server:
+PhantomPay is a decentralized payroll and grant distribution protocol that allows DAOs and Web3 enterprises to pay contributors privately on Solana. Built natively on MagicBlock's Private Ephemeral Rollup (PER) and the Intel TDX Trusted Execution Environment.
+
+## 🎯 The Problem
+On Solana, all transactions are public. For DAOs and companies, this means:
+- **Salary Leaks**: Team members can see what everyone else is paid.
+- **Bounty Front-running**: Competitive grants reveal treasury strategies.
+- **Enterprise Friction**: Traditional businesses cannot move payroll on-chain due to data privacy compliance.
+
+## ✨ The Solution
+PhantomPay uses MagicBlock's **Private Ephemeral Rollups (PER)** to move SPL token balances and transfers into a confidential enclave. 
+
+- **Private Treasuries**: Deposit funds into the TEE.
+- **Confidential Transfers**: Send USDC to contributors where neither the amount nor the counterparty relationship is published to the base chain.
+- **Seamless Composable Exit**: Contributors can withdraw their private balances back to the public Solana state at any time.
+
+## 🛠️ Technical Implementation
+1. **MagicBlock Payments API**: Deep integration with `payments.magicblock.app` for deposit, transfer, and withdrawal flows.
+2. **Intel TDX Authentication**: Uses wallet signature challenges to securely map Solana public keys to private TEE sessions.
+3. **Delayed & Split Routing**: Obfuscates the timing and amounts of payments returning to the base chain.
+
+## 🚀 Running Locally
 
 ```bash
+# Install dependencies
+npm install
+
+# Start the development server
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) with your browser to see the app.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+> **Note**: Requires a Solana wallet (Phantom, Backpack, Solflare) connected to Devnet.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 🔗 Architecture
+- **Frontend**: Next.js 14, TailwindCSS, React Context
+- **Web3**: `@solana/web3.js`, Wallet Adapter
+- **Privacy Engine**: `@magicblock-labs/ephemeral-rollups-sdk`
 
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+---
+*Built with 💜 for the Solana Colosseum.*
