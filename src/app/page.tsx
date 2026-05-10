@@ -19,6 +19,8 @@ export default function Home() {
     clearError,
     refreshBalances,
     isLoadingBalance,
+    publicBalance,
+    privateBalance,
   } = usePhantomPay();
 
   return (
