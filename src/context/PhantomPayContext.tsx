@@ -17,6 +17,7 @@ import {
   getTeeRpcUrl,
   type AuthToken,
   type BalanceResponse,
+  type TransactionResponse,
 } from "@/lib/magicblock";
 import { SOLANA_RPC_DEVNET, DEVNET_USDC_MINT } from "@/lib/constants";
 import bs58 from "bs58";
