@@ -157,16 +157,16 @@ export function PhantomPayProvider({ children }: { children: ReactNode }) {
   // ─── Sign & Send helper ───────────────────────────────────────────────────────
 
   const signAndSend = useCallback(
-    async (txBase64: string, sendTo: "base" | "ephemeral", token?: string): Promise<string> => {
+    async (res: TransactionResponse, token?: string): Promise<string> => {
       if (!publicKey || !signTransaction) throw new Error("Wallet not connected");
 
       const rpcUrl =
-        sendTo === "ephemeral" && token
+        res.sendTo === "ephemeral" && token
           ? getTeeRpcUrl(token)
           : SOLANA_RPC_DEVNET;
 
       const connection = new Connection(rpcUrl, "confirmed");
-      const txBytes = Buffer.from(txBase64, "base64");
+      const txBytes = Buffer.from(res.transactionBase64, "base64");
 
       // Try as versioned first, fall back to legacy
       let signature: string;
@@ -180,7 +180,11 @@ export function PhantomPayProvider({ children }: { children: ReactNode }) {
         signature = await connection.sendRawTransaction((signed as Transaction).serialize());
       }
 
-      await connection.confirmTransaction(signature, "confirmed");
+      await connection.confirmTransaction({
+        signature,
+        blockhash: res.recentBlockhash,
+        lastValidBlockHeight: res.lastValidBlockHeight,
+      }, "confirmed");
       return signature;
     },
     [publicKey, signTransaction]
@@ -192,7 +196,7 @@ export function PhantomPayProvider({ children }: { children: ReactNode }) {
     if (!publicKey) return false;
     try {
       const res = await buildInitializeMint(publicKey.toBase58(), DEVNET_USDC_MINT);
-      await signAndSend(res.transactionBase64, res.sendTo);
+      await signAndSend(res);
       setMintInitialized(true);
       return true;
     } catch (err: unknown) {
@@ -221,7 +225,7 @@ export function PhantomPayProvider({ children }: { children: ReactNode }) {
         addTxRecord(record);
         const rawAmount = Math.round(uiAmount * 1_000_000);
         const res = await buildDeposit(publicKey.toBase58(), DEVNET_USDC_MINT, rawAmount);
-        const sig = await signAndSend(res.transactionBase64, res.sendTo);
+        const sig = await signAndSend(res);
         updateTxRecord(record.id, { status: "confirmed", txSignature: sig });
         await refreshBalances();
         return sig;
@@ -267,7 +271,7 @@ export function PhantomPayProvider({ children }: { children: ReactNode }) {
           },
           authToken.token
         );
-        const sig = await signAndSend(res.transactionBase64, res.sendTo, authToken.token);
+        const sig = await signAndSend(res, authToken.token);
         updateTxRecord(record.id, { status: "confirmed", txSignature: sig });
         await refreshBalances();
         return sig;
@@ -307,7 +311,7 @@ export function PhantomPayProvider({ children }: { children: ReactNode }) {
           rawAmount,
           authToken.token
         );
-        const sig = await signAndSend(res.transactionBase64, res.sendTo, authToken.token);
+        const sig = await signAndSend(res, authToken.token);
         updateTxRecord(record.id, { status: "confirmed", txSignature: sig });
         await refreshBalances();
         return sig;
