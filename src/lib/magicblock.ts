@@ -114,7 +114,7 @@ export async function buildDeposit(
   const res = await fetch(`${PER_API_BASE}/v1/spl/deposit`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ from, mint, amount }),
+    body: JSON.stringify({ owner: from, mint, amount }),
   });
   if (!res.ok) {
     const err = await res.text();
@@ -169,7 +169,7 @@ export async function buildWithdraw(
       "Content-Type": "application/json",
       Authorization: `Bearer ${token}`,
     },
-    body: JSON.stringify({ from, mint, amount }),
+    body: JSON.stringify({ owner: from, mint, amount }),
   });
   if (!res.ok) {
     const err = await res.text();

@@ -161,6 +161,25 @@ export default function Home() {
                 </motion.div>
               )}
 
+              {(publicBalance?.uiAmount === 0 && privateBalance?.uiAmount === 0) && (
+                <motion.div 
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="bg-purple-900/10 border border-purple-500/20 rounded-2xl p-4 flex items-start gap-3 relative overflow-hidden"
+                >
+                  <div className="p-2 bg-purple-500/20 rounded-lg shrink-0 mt-0.5">
+                    <Info className="w-5 h-5 text-purple-300" />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-medium text-purple-200">Demo Mode Active (Devnet)</h4>
+                    <p className="text-xs text-purple-300/60 mt-1 leading-relaxed">
+                      You are running on Solana Devnet. All funds here are 100% fake. 
+                      To test the application, open your Phantom Wallet settings, switch to Devnet, and request a Devnet SOL airdrop. Then you can swap it for Devnet USDC to deposit!
+                    </p>
+                  </div>
+                </motion.div>
+              )}
+
               <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
                 <TreasuryDashboard />
               </motion.div>
