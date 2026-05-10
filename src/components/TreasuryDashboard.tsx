@@ -1,7 +1,7 @@
 "use client";
 
 import { usePhantomPay } from "@/context/PhantomPayContext";
-import { Loader2, ArrowRightLeft, Wallet, ShieldCheck, Download, Upload } from "lucide-react";
+import { Loader2, Wallet, ShieldCheck, Download, Upload, ArrowRightLeft } from "lucide-react";
 import { useState } from "react";
 
 export function TreasuryDashboard() {
@@ -38,76 +38,117 @@ export function TreasuryDashboard() {
   };
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-      {/* Public Balance Card */}
-      <div className="p-6 border border-white/10 rounded-3xl bg-white/[0.02] backdrop-blur-xl relative overflow-hidden">
-        <div className="absolute top-0 right-0 p-6">
-          <Wallet className="w-8 h-8 text-white/10" />
-        </div>
-        <h3 className="text-white/60 font-medium mb-1">Public Treasury</h3>
-        <div className="text-3xl font-bold mb-6">
-          {publicBalance?.uiAmount?.toLocaleString() ?? "0.00"} <span className="text-lg text-white/40">USDC</span>
-        </div>
+    <div className="relative">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 relative z-10">
         
-        <form onSubmit={handleDeposit} className="flex gap-2">
-          <input
-            type="number"
-            step="0.01"
-            min="0.01"
-            value={depAmount}
-            onChange={(e) => setDepAmount(e.target.value)}
-            placeholder="Amount"
-            className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-2.5 text-white placeholder:text-white/20 focus:outline-none focus:border-blue-500/50 transition-colors"
-          />
-          <button
-            type="submit"
-            disabled={isDepositing || !depAmount}
-            className="flex-shrink-0 flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white px-4 py-2.5 rounded-xl transition-colors disabled:opacity-50"
-          >
-            {isDepositing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
-            Deposit
-          </button>
-        </form>
-        <p className="text-xs text-white/40 mt-3 text-center">Move funds to the Private Enclave</p>
-      </div>
-
-      <div className="hidden md:flex items-center justify-center -mx-3 z-10 absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none">
-        <div className="bg-[#050510] p-2 rounded-full border border-white/10">
-          <ArrowRightLeft className="w-6 h-6 text-white/20" />
+        {/* Public Balance Card */}
+        <div className="glass-panel rounded-3xl p-6 relative overflow-hidden group">
+          <div className="absolute top-0 right-0 p-6 opacity-30 group-hover:opacity-100 transition-opacity duration-500">
+            <div className="p-3 bg-white/5 rounded-2xl">
+              <Wallet className="w-6 h-6 text-white/40 group-hover:text-white/80 transition-colors" />
+            </div>
+          </div>
+          
+          <div className="mb-8">
+            <h3 className="text-sm font-medium text-white/50 tracking-wide uppercase mb-2">Public Treasury</h3>
+            <div className="flex items-baseline gap-2">
+              <span className="text-4xl font-bold tracking-tight text-white/90">
+                {publicBalance?.uiAmount?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) ?? "0.00"}
+              </span>
+              <span className="text-lg font-medium text-white/40">USDC</span>
+            </div>
+          </div>
+          
+          <form onSubmit={handleDeposit} className="flex gap-3">
+            <div className="relative flex-1">
+              <input
+                type="number"
+                step="0.01"
+                min="0.01"
+                value={depAmount}
+                onChange={(e) => setDepAmount(e.target.value)}
+                placeholder="0.00"
+                className="glass-input w-full pl-4 pr-12 font-medium"
+              />
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-white/20">USDC</div>
+            </div>
+            <button
+              type="submit"
+              disabled={isDepositing || !depAmount}
+              className="flex-shrink-0 flex items-center justify-center gap-2 bg-white/10 hover:bg-white/15 active:bg-white/5 text-white/90 px-6 py-3 rounded-xl font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed border border-white/5"
+            >
+              {isDepositing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+              Deposit
+            </button>
+          </form>
+          <div className="mt-4 flex items-center gap-2 text-xs text-white/30 font-medium">
+            <div className="w-1.5 h-1.5 rounded-full bg-blue-500/50"></div>
+            Moves funds into the TEE Enclave
+          </div>
         </div>
-      </div>
 
-      {/* Private Balance Card */}
-      <div className="p-6 border border-purple-500/30 rounded-3xl bg-purple-500/[0.02] backdrop-blur-xl relative overflow-hidden shadow-[0_0_40px_rgba(168,85,247,0.1)]">
-        <div className="absolute top-0 right-0 p-6">
-          <ShieldCheck className="w-8 h-8 text-purple-500/30" />
-        </div>
-        <h3 className="text-purple-300/80 font-medium mb-1">Private Enclave (TEE)</h3>
-        <div className="text-3xl font-bold mb-6 text-purple-100">
-          {privateBalance?.uiAmount?.toLocaleString() ?? "0.00"} <span className="text-lg text-purple-300/40">USDC</span>
+        {/* The Connector (Desktop Only) */}
+        <div className="hidden md:flex absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-20 pointer-events-none">
+          <div className="bg-[#03030a] p-2 rounded-2xl border border-white/10 shadow-xl">
+            <div className="bg-white/5 p-2 rounded-xl">
+              <ArrowRightLeft className="w-5 h-5 text-white/30" />
+            </div>
+          </div>
         </div>
 
-        <form onSubmit={handleWithdraw} className="flex gap-2">
-          <input
-            type="number"
-            step="0.01"
-            min="0.01"
-            max={privateBalance?.uiAmount}
-            value={withAmount}
-            onChange={(e) => setWithAmount(e.target.value)}
-            placeholder="Amount"
-            className="w-full bg-black/40 border border-purple-500/20 rounded-xl px-4 py-2.5 text-white placeholder:text-white/20 focus:outline-none focus:border-purple-500/50 transition-colors"
-          />
-          <button
-            type="submit"
-            disabled={isWithdrawing || !withAmount}
-            className="flex-shrink-0 flex items-center gap-2 bg-purple-500/20 hover:bg-purple-500/30 text-purple-100 px-4 py-2.5 rounded-xl transition-colors disabled:opacity-50"
-          >
-            {isWithdrawing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-            Withdraw
-          </button>
-        </form>
-        <p className="text-xs text-purple-300/40 mt-3 text-center">Withdraw back to Public Treasury</p>
+        {/* Private Balance Card */}
+        <div className="glass-panel-purple rounded-3xl p-6 relative overflow-hidden group">
+          {/* Internal glowing orb */}
+          <div className="absolute top-[-50%] right-[-10%] w-64 h-64 bg-purple-500/20 rounded-full blur-[60px] pointer-events-none group-hover:bg-purple-500/30 transition-colors duration-700" />
+          
+          <div className="absolute top-0 right-0 p-6 opacity-60 group-hover:opacity-100 transition-opacity duration-500 z-10">
+            <div className="p-3 bg-purple-500/10 rounded-2xl border border-purple-500/20 shadow-[0_0_15px_rgba(168,85,247,0.2)]">
+              <ShieldCheck className="w-6 h-6 text-purple-400" />
+            </div>
+          </div>
+          
+          <div className="mb-8 relative z-10">
+            <h3 className="text-sm font-medium text-purple-300/60 tracking-wide uppercase mb-2 flex items-center gap-2">
+              Private Enclave 
+              <span className="px-1.5 py-0.5 rounded text-[10px] bg-purple-500/20 text-purple-300 border border-purple-500/20">TEE</span>
+            </h3>
+            <div className="flex items-baseline gap-2">
+              <span className="text-4xl font-bold tracking-tight text-white shadow-purple-500/20 drop-shadow-lg">
+                {privateBalance?.uiAmount?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) ?? "0.00"}
+              </span>
+              <span className="text-lg font-medium text-purple-300/50">USDC</span>
+            </div>
+          </div>
+
+          <form onSubmit={handleWithdraw} className="flex gap-3 relative z-10">
+            <div className="relative flex-1">
+              <input
+                type="number"
+                step="0.01"
+                min="0.01"
+                max={privateBalance?.uiAmount}
+                value={withAmount}
+                onChange={(e) => setWithAmount(e.target.value)}
+                placeholder="0.00"
+                className="glass-input w-full pl-4 pr-12 font-medium !border-purple-500/20 focus:!border-purple-400/50 !bg-purple-950/20"
+              />
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-purple-300/30">USDC</div>
+            </div>
+            <button
+              type="submit"
+              disabled={isWithdrawing || !withAmount}
+              className="flex-shrink-0 flex items-center justify-center gap-2 bg-purple-600/80 hover:bg-purple-500 active:bg-purple-700 text-white px-6 py-3 rounded-xl font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_20px_rgba(168,85,247,0.3)] hover:shadow-[0_0_30px_rgba(168,85,247,0.5)] border border-purple-400/30"
+            >
+              {isWithdrawing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+              Withdraw
+            </button>
+          </form>
+          <div className="mt-4 flex items-center gap-2 text-xs text-purple-200/40 font-medium relative z-10">
+            <div className="w-1.5 h-1.5 rounded-full bg-purple-400/50"></div>
+            Returns funds to public base chain
+          </div>
+        </div>
+
       </div>
     </div>
   );

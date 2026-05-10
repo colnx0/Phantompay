@@ -21,76 +21,92 @@ export default function Home() {
   } = usePhantomPay();
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col selection:bg-purple-500/30">
       <Header />
 
-      <main className="flex-1 max-w-5xl w-full mx-auto p-6 space-y-8 pb-20">
+      <main className="flex-1 max-w-6xl w-full mx-auto p-4 sm:p-6 md:p-8 space-y-8 pb-20">
         {error && (
-          <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4 flex items-start gap-3">
+          <div className="bg-red-500/10 border border-red-500/20 rounded-2xl p-4 flex items-start gap-3 backdrop-blur-md">
             <AlertTriangle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
             <div className="flex-1 text-sm text-red-200">
               <p className="font-medium text-red-100">Error Occurred</p>
               <p className="mt-1 opacity-80">{error}</p>
             </div>
-            <button onClick={clearError} className="text-red-400 hover:text-red-300">
+            <button onClick={clearError} className="text-red-400 hover:text-red-300 transition-colors p-1 rounded-lg hover:bg-red-500/10">
               ✕
             </button>
           </div>
         )}
 
         {!connected ? (
-          <div className="flex flex-col items-center justify-center h-[60vh] text-center space-y-6">
-            <div className="w-20 h-20 bg-purple-500/10 rounded-full flex items-center justify-center shadow-[0_0_60px_rgba(168,85,247,0.2)]">
-              <Shield className="w-10 h-10 text-purple-400" />
+          <div className="flex flex-col items-center justify-center h-[65vh] text-center space-y-8 animate-in fade-in zoom-in duration-700">
+            <div className="relative group">
+              <div className="absolute inset-0 bg-purple-500/20 blur-[60px] rounded-full group-hover:bg-purple-500/30 transition-all duration-700"></div>
+              <div className="w-24 h-24 relative bg-white/[0.02] border border-white/5 backdrop-blur-3xl rounded-3xl flex items-center justify-center shadow-2xl">
+                <Shield className="w-12 h-12 text-purple-400" />
+              </div>
             </div>
-            <div className="max-w-md">
-              <h2 className="text-3xl font-bold text-white mb-4">
+            <div className="max-w-xl space-y-4">
+              <h2 className="text-4xl sm:text-5xl font-bold tracking-tight text-white/90">
                 Private DAO Payroll
               </h2>
-              <p className="text-white/60 leading-relaxed mb-8">
+              <p className="text-lg text-white/50 leading-relaxed font-light">
                 Connect your wallet to access the Private Ephemeral Rollup enclave. 
-                Pay contributors and settle bounties without exposing your treasury strategy.
+                Pay contributors and settle bounties securely without exposing your treasury strategies to the public chain.
               </p>
             </div>
           </div>
         ) : !isAuthenticated ? (
-          <div className="flex flex-col items-center justify-center h-[50vh] text-center space-y-6">
-            <div className="w-16 h-16 bg-blue-500/10 rounded-full flex items-center justify-center">
-              <Shield className="w-8 h-8 text-blue-400" />
+          <div className="flex flex-col items-center justify-center h-[65vh] text-center space-y-8 animate-in fade-in slide-in-from-bottom-8 duration-700">
+            <div className="relative">
+              <div className="absolute inset-0 bg-blue-500/20 blur-[50px] rounded-full"></div>
+              <div className="w-20 h-20 relative bg-white/[0.02] border border-white/5 backdrop-blur-3xl rounded-3xl flex items-center justify-center">
+                <Shield className="w-10 h-10 text-blue-400" />
+              </div>
             </div>
-            <div className="max-w-md">
-              <h2 className="text-2xl font-bold text-white mb-2">
+            <div className="max-w-lg space-y-3">
+              <h2 className="text-3xl font-bold tracking-tight text-white/90">
                 Authenticate with TEE
               </h2>
-              <p className="text-white/60 text-sm">
-                Sign a message to prove wallet ownership and access your private balances stored in the Intel TDX Trusted Execution Environment.
+              <p className="text-white/50 font-light leading-relaxed">
+                Sign a message to prove wallet ownership. This generates a secure session to read your private balances stored inside the Intel TDX Trusted Execution Environment.
               </p>
             </div>
           </div>
         ) : (
-          <div className="space-y-8 animate-in fade-in duration-500">
-            <div className="flex items-center justify-between">
-              <h2 className="text-2xl font-semibold tracking-tight">Treasury Operations</h2>
+          <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
+            <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-white/5 pb-6">
+              <div>
+                <h2 className="text-3xl font-bold tracking-tight text-white/90">Treasury Operations</h2>
+                <p className="text-white/40 text-sm mt-1">Manage public funds and private payroll allocations</p>
+              </div>
               <button 
                 onClick={refreshBalances} 
                 disabled={isLoadingBalance}
-                className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-white/60 hover:text-white transition-colors"
+                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 text-white/60 hover:text-white transition-all disabled:opacity-50"
               >
-                <RefreshCw className={`w-4 h-4 ${isLoadingBalance ? 'animate-spin' : ''}`} />
+                <RefreshCw className={`w-4 h-4 ${isLoadingBalance ? 'animate-spin text-purple-400' : ''}`} />
+                <span className="text-sm font-medium">Sync State</span>
               </button>
             </div>
 
             {mintInitialized === false && (
-              <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-4 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <Info className="w-5 h-5 text-blue-400" />
-                  <span className="text-sm text-blue-100">
-                    The DEVNET USDC mint hasn't been initialized on the ephemeral rollup yet.
-                  </span>
+              <div className="glass-panel border-blue-500/20 rounded-2xl p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 blur-[80px] pointer-events-none rounded-full" />
+                <div className="flex items-start gap-3 relative z-10">
+                  <div className="p-2 bg-blue-500/10 rounded-lg shrink-0 mt-0.5">
+                    <Info className="w-5 h-5 text-blue-400" />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-medium text-blue-100">Mint Initialization Required</h4>
+                    <p className="text-xs text-blue-200/60 mt-1">
+                      The DEVNET USDC mint hasn't been initialized on the ephemeral rollup yet. This is a one-time setup.
+                    </p>
+                  </div>
                 </div>
                 <button
                   onClick={initializeMint}
-                  className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium rounded-lg transition-colors"
+                  className="shrink-0 px-5 py-2.5 bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 text-sm font-medium rounded-xl border border-blue-500/30 transition-colors relative z-10"
                 >
                   Initialize Mint
                 </button>
@@ -99,13 +115,18 @@ export default function Home() {
 
             <TreasuryDashboard />
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <div className="lg:col-span-1">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+              <div className="lg:col-span-5 xl:col-span-4">
                 <PaymentForm />
               </div>
-              <div className="lg:col-span-2 space-y-4">
-                <h3 className="text-lg font-medium text-white/80">Transaction History</h3>
-                <TxHistory />
+              <div className="lg:col-span-7 xl:col-span-8">
+                <div className="glass-panel rounded-3xl p-6 h-full">
+                  <div className="flex items-center justify-between mb-6">
+                    <h3 className="text-xl font-semibold tracking-tight text-white/90">Transaction History</h3>
+                    <span className="text-xs font-medium px-2 py-1 bg-white/5 rounded-md text-white/40">Recent Activity</span>
+                  </div>
+                  <TxHistory />
+                </div>
               </div>
             </div>
           </div>
