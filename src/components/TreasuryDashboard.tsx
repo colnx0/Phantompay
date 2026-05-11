@@ -74,11 +74,11 @@ export function TreasuryDashboard() {
             </div>
             <button
               type="submit"
-              disabled={isDepositing || !depAmount}
+              disabled={isDepositing || !depAmount || (publicBalance?.uiAmount ?? 0) === 0}
               className="flex-shrink-0 flex items-center justify-center gap-2 bg-white/10 hover:bg-white/15 active:bg-white/5 text-white/90 px-6 py-3 rounded-xl font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed border border-white/5"
             >
               {isDepositing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
-              Deposit
+              { (publicBalance?.uiAmount ?? 0) === 0 ? "No Funds" : "Deposit" }
             </button>
           </form>
           <div className="mt-4 flex items-center gap-2 text-xs text-white/30 font-medium">
@@ -136,11 +136,11 @@ export function TreasuryDashboard() {
             </div>
             <button
               type="submit"
-              disabled={isWithdrawing || !withAmount}
+              disabled={isWithdrawing || !withAmount || (privateBalance?.uiAmount ?? 0) === 0}
               className="flex-shrink-0 flex items-center justify-center gap-2 bg-purple-600/80 hover:bg-purple-500 active:bg-purple-700 text-white px-6 py-3 rounded-xl font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_20px_rgba(168,85,247,0.3)] hover:shadow-[0_0_30px_rgba(168,85,247,0.5)] border border-purple-400/30"
             >
               {isWithdrawing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-              Withdraw
+              { (privateBalance?.uiAmount ?? 0) === 0 ? "Empty Enclave" : "Withdraw" }
             </button>
           </form>
           <div className="mt-4 flex items-center gap-2 text-xs text-purple-200/40 font-medium relative z-10">

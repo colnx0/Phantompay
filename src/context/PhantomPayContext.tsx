@@ -155,6 +155,13 @@ export function PhantomPayProvider({ children }: { children: ReactNode }) {
     }
   }, [publicKey, authToken]);
 
+  // Auto-refresh balances on connect or auth change
+  React.useEffect(() => {
+    if (connected) {
+      refreshBalances();
+    }
+  }, [connected, authToken, refreshBalances]);
+
   // ─── Sign & Send helper ───────────────────────────────────────────────────────
 
   const signAndSend = useCallback(
