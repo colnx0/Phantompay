@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useCallback, ReactNode } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
-import { Connection, Transaction, VersionedTransaction, ComputeBudgetProgram } from "@solana/web3.js";
+import { Connection, Transaction, VersionedTransaction, ComputeBudgetProgram, PublicKey } from "@solana/web3.js";
 import {
   getChallenge,
   login,
@@ -131,11 +131,25 @@ export function PhantomPayProvider({ children }: { children: ReactNode }) {
     try {
       const pubkey = publicKey.toBase58();
 
-      // Public balance always available
-      const pub = await getPublicBalance(pubkey, DEVNET_USDC_MINT).catch(() => null);
-      setPublicBalance(pub);
+      // Public balance: Fetch directly from Solana for instant accuracy
+      const connection = new Connection(SOLANA_RPC_DEVNET, "confirmed");
+      const tokenAccounts = await connection.getParsedTokenAccountsByOwner(
+        new PublicKey(pubkey),
+        { mint: new PublicKey(DEVNET_USDC_MINT) }
+      );
+      
+      if (tokenAccounts.value.length > 0) {
+        const accountData = tokenAccounts.value[0].account.data.parsed.info.tokenAmount;
+        setPublicBalance({
+          balance: parseInt(accountData.amount),
+          decimals: accountData.decimals,
+          uiAmount: accountData.uiAmount,
+        });
+      } else {
+        setPublicBalance({ balance: 0, decimals: 6, uiAmount: 0 });
+      }
 
-      // Private balance requires auth
+      // Private balance: Still requires TEE auth
       if (authToken) {
         const priv = await getPrivateBalance(pubkey, DEVNET_USDC_MINT, authToken.token).catch(() => null);
         setPrivateBalance(priv);
@@ -265,6 +279,9 @@ export function PhantomPayProvider({ children }: { children: ReactNode }) {
         const res = await buildDeposit(publicKey.toBase58(), DEVNET_USDC_MINT, rawAmount);
         const sig = await signAndSend(res);
         updateTxRecord(record.id, { status: "confirmed", txSignature: sig });
+        
+        // Wait a few seconds for the rollup to index the base-chain deposit
+        await new Promise(r => setTimeout(r, 3000));
         await refreshBalances();
         return sig;
       } catch (err: unknown) {
