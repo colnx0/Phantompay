@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useCallback, ReactNode } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
-import { Connection, Transaction, VersionedTransaction } from "@solana/web3.js";
+import { Connection, Transaction, VersionedTransaction, ComputeBudgetProgram } from "@solana/web3.js";
 import {
   getChallenge,
   login,
@@ -174,18 +174,29 @@ export function PhantomPayProvider({ children }: { children: ReactNode }) {
       try {
         const vtx = VersionedTransaction.deserialize(txBytes);
         const signed = await signTransaction(vtx as never);
-        signature = await connection.sendRawTransaction((signed as VersionedTransaction).serialize());
+        signature = await connection.sendRawTransaction((signed as VersionedTransaction).serialize(), {
+          skipPreflight: true,
+          maxRetries: 5,
+        });
       } catch {
         const tx = Transaction.from(txBytes);
+        
+        // Add compute budget and priority fee to legacy tx
+        tx.add(ComputeBudgetProgram.setComputeUnitLimit({ units: 400_000 }));
+        tx.add(ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 10_000 }));
+        
         const signed = await signTransaction(tx as never);
-        signature = await connection.sendRawTransaction((signed as Transaction).serialize());
+        signature = await connection.sendRawTransaction((signed as Transaction).serialize(), {
+          skipPreflight: true,
+          maxRetries: 5,
+        });
       }
 
       await connection.confirmTransaction({
         signature,
         blockhash: res.recentBlockhash,
         lastValidBlockHeight: res.lastValidBlockHeight,
-      }, "confirmed");
+      }, "processed"); // Use 'processed' for faster demo response
       return signature;
     },
     [publicKey, signTransaction]
