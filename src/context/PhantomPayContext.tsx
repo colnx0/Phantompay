@@ -174,19 +174,38 @@ export function PhantomPayProvider({ children }: { children: ReactNode }) {
           : SOLANA_RPC_DEVNET;
 
       const connection = new Connection(rpcUrl, "confirmed");
+      
+      // Fetch a fresh blockhash right before signing to prevent 'Expired' errors
+      const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash("confirmed");
+      
       const txBytes = Buffer.from(res.transactionBase64, "base64");
 
-      // Try as versioned first, fall back to legacy
       let signature: string;
       try {
+        // Handle Versioned Transaction
         const vtx = VersionedTransaction.deserialize(txBytes);
+        
+        // Inject the fresh blockhash
+        // Note: This only works because the API returns an unsigned transaction
+        if (vtx.message.version === 0 || vtx.message.version === "legacy") {
+           (vtx.message as any).recentBlockhash = blockhash;
+        } else {
+           (vtx.message as any).recentBlockhash = blockhash;
+        }
+
         const signed = await signTransaction(vtx as never);
         signature = await connection.sendRawTransaction((signed as VersionedTransaction).serialize(), {
           skipPreflight: true,
           maxRetries: 5,
         });
-      } catch {
+      } catch (err) {
+        console.warn("Versioned transaction failed, falling back to legacy:", err);
         const tx = Transaction.from(txBytes);
+        
+        // Inject fresh blockhash and settings
+        tx.recentBlockhash = blockhash;
+        tx.lastValidBlockHeight = lastValidBlockHeight;
+        tx.feePayer = publicKey;
         
         // Add compute budget and priority fee to legacy tx
         tx.add(ComputeBudgetProgram.setComputeUnitLimit({ units: 400_000 }));
@@ -201,9 +220,9 @@ export function PhantomPayProvider({ children }: { children: ReactNode }) {
 
       await connection.confirmTransaction({
         signature,
-        blockhash: res.recentBlockhash,
-        lastValidBlockHeight: res.lastValidBlockHeight,
-      }, "processed"); // Use 'processed' for faster demo response
+        blockhash: blockhash,
+        lastValidBlockHeight: lastValidBlockHeight,
+      }, "processed");
       return signature;
     },
     [publicKey, signTransaction]
