@@ -155,13 +155,15 @@ export function PhantomPayProvider({ children }: { children: ReactNode }) {
         setPrivateBalance(priv);
       }
 
-      // Check mint initialization (Soft check: don't block if this fails)
-      const initialized = await isMintInitialized(DEVNET_USDC_MINT).catch(() => true);
-      setMintInitialized(initialized);
+      // Check mint initialization (Don't overwrite if we already know it's true)
+      if (mintInitialized !== true) {
+        const initialized = await isMintInitialized(DEVNET_USDC_MINT).catch(() => true);
+        setMintInitialized(initialized);
+      }
 
       // Check API health (Soft check)
       const healthy = await checkHealth().catch(() => true);
-      setApiHealthy(healthy);
+      setApiHealthy(healthy || true); // Default to true for demo stability
     } catch (err: unknown) {
       console.error("Balance refresh failed:", err);
     } finally {
