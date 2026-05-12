@@ -213,7 +213,7 @@ export async function buildInitializeMint(
 
 export async function checkHealth(): Promise<boolean> {
   try {
-    const res = await fetch(`${PER_API_BASE}/v1/health`);
+    const res = await fetch(`${PER_API_BASE}/health`);
     return res.ok;
   } catch {
     return false;
