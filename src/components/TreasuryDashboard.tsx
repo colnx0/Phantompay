@@ -12,6 +12,7 @@ export function TreasuryDashboard() {
     withdraw,
     isDepositing,
     isWithdrawing,
+    isAuthenticated,
   } = usePhantomPay();
 
   const [depAmount, setDepAmount] = useState("");
@@ -74,11 +75,11 @@ export function TreasuryDashboard() {
             </div>
             <button
               type="submit"
-              disabled={isDepositing || !depAmount || (publicBalance?.uiAmount ?? 0) === 0}
+              disabled={isDepositing || !depAmount || (publicBalance?.uiAmount ?? 0) === 0 || !isAuthenticated}
               className="flex-shrink-0 flex items-center justify-center gap-2 bg-white/10 hover:bg-white/15 active:bg-white/5 text-white/90 px-6 py-3 rounded-xl font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed border border-white/5"
             >
               {isDepositing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
-              { (publicBalance?.uiAmount ?? 0) === 0 ? "No Funds" : "Deposit" }
+              { !isAuthenticated ? "Auth TEE First" : (publicBalance?.uiAmount ?? 0) === 0 ? "No Funds" : "Deposit" }
             </button>
           </form>
           <div className="mt-4 flex items-center gap-2 text-xs text-white/30 font-medium">

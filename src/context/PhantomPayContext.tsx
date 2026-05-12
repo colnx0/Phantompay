@@ -197,31 +197,40 @@ export function PhantomPayProvider({ children }: { children: ReactNode }) {
           : SOLANA_RPC_DEVNET;
 
       const connection = new Connection(rpcUrl, "confirmed");
-      
-      // Fetch a fresh blockhash
-      const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash("confirmed");
       const txBytes = Buffer.from(res.transactionBase64, "base64");
 
       let signature: string;
       try {
+        console.log(`Signing transaction (Type: ${res.kind}, RPC: ${rpcUrl})...`);
+        
         // Try Versioned Transaction first
         const vtx = VersionedTransaction.deserialize(txBytes);
-        vtx.message.recentBlockhash = blockhash;
+        
+        // Only override blockhash if the connection is NOT the TEE (Solana transactions)
+        if (!token) {
+          const { blockhash } = await connection.getLatestBlockhash("confirmed");
+          vtx.message.recentBlockhash = blockhash;
+        }
 
         const signed = await signTransaction(vtx as never);
         signature = await connection.sendRawTransaction((signed as VersionedTransaction).serialize(), {
           skipPreflight: true,
           maxRetries: 5,
         });
-      } catch (err) {
-        console.warn("Versioned transaction failed or not supported, falling back to legacy:", err);
+      } catch (err: any) {
+        console.warn("Primary transaction path failed, trying fallback:", err?.message || err);
+        
+        // Fallback to legacy/manual construction
         const tx = Transaction.from(txBytes);
+        
+        // Fetch fresh blockhash for legacy fallback
+        const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash("confirmed");
         tx.recentBlockhash = blockhash;
         tx.lastValidBlockHeight = lastValidBlockHeight;
         tx.feePayer = publicKey;
         
-        // Add priority fees to ensure landing on congested devnet
-        tx.add(ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 50_000 }));
+        // Add priority fees
+        tx.add(ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 100_000 }));
         
         const signed = await signTransaction(tx as never);
         signature = await connection.sendRawTransaction((signed as Transaction).serialize(), {
@@ -230,11 +239,13 @@ export function PhantomPayProvider({ children }: { children: ReactNode }) {
         });
       }
 
+      console.log("Transaction sent, confirming:", signature);
+      const latest = await connection.getLatestBlockhash("confirmed");
       await connection.confirmTransaction({
         signature,
-        blockhash: blockhash,
-        lastValidBlockHeight: lastValidBlockHeight,
-      }, "processed");
+        ...latest
+      }, "confirmed");
+      console.log("Transaction confirmed!");
       return signature;
     },
     [publicKey, signTransaction]
