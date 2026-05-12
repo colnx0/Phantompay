@@ -155,15 +155,18 @@ export function PhantomPayProvider({ children }: { children: ReactNode }) {
         setPrivateBalance(priv);
       }
 
-      // Check mint initialization (Assume true if authenticated to unblock demo)
-      if (mintInitialized !== true) {
-        const initialized = await isMintInitialized(DEVNET_USDC_MINT).catch(() => true);
-        setMintInitialized(initialized || true); 
+      // Check mint initialization
+      const initialized = await isMintInitialized(DEVNET_USDC_MINT).catch((err) => {
+        console.error("Mint init check failed:", err);
+        return null; // Don't assume true if it fails
+      });
+      if (initialized !== null) {
+        setMintInitialized(initialized);
       }
 
-      // Check API health (Soft check)
-      const healthy = await checkHealth().catch(() => true);
-      setApiHealthy(healthy || true); // Default to true for demo stability
+      // Check API health
+      const healthy = await checkHealth().catch(() => false);
+      setApiHealthy(healthy);
     } catch (err: unknown) {
       console.error("Balance refresh failed:", err);
     } finally {
@@ -288,25 +291,28 @@ export function PhantomPayProvider({ children }: { children: ReactNode }) {
         const rawAmount = Math.round(uiAmount * 1_000_000);
         const res = await buildDeposit(publicKey.toBase58(), DEVNET_USDC_MINT, rawAmount);
         const sig = await signAndSend(res);
-                updateTxRecord(record.id, { status: "confirmed", txSignature: sig });
+        updateTxRecord(record.id, { status: "confirmed", txSignature: sig });
 
-        // Wait a few seconds for the rollup to index the base‑chain deposit
-        await new Promise(r => setTimeout(r, 3000));
-        // Wait a few seconds for the rollup to index the base‑chain deposit
+        // Initial wait for rollup indexing
         await new Promise(r => setTimeout(r, 3000));
         // Poll private balance until it increases (max 8 attempts, 2 s interval)
         let attempts = 8;
         const start = privateBalance?.uiAmount || 0;
         while (attempts > 0) {
-          const priv = await getPrivateBalance(publicKey.toBase58(), DEVNET_USDC_MINT, authToken?.token).catch(() => null);
-          if (priv && (priv.uiAmount || 0) > start) {
-            setPrivateBalance(priv);
-            break;
+          // If we have an auth token, query the private balance directly
+          if (authToken) {
+            const priv = await getPrivateBalance(publicKey.toBase58(), DEVNET_USDC_MINT, authToken.token).catch(() => null);
+            if (priv && (priv.uiAmount || 0) > start) {
+              setPrivateBalance(priv);
+              break;
+            }
           }
+          // Fallback to full refresh (covers public + private)
+          await refreshBalances();
           attempts--;
           await new Promise(r => setTimeout(r, 2000));
         }
-        // Ensure both balances are refreshed for UI consistency
+        // Ensure UI is fully synced
         await refreshBalances();
         return sig;
       } catch (err: unknown) {
