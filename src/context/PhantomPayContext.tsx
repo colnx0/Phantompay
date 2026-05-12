@@ -214,7 +214,7 @@ export function PhantomPayProvider({ children }: { children: ReactNode }) {
 
         const signed = await signTransaction(vtx as never);
         signature = await connection.sendRawTransaction((signed as VersionedTransaction).serialize(), {
-          skipPreflight: true,
+          skipPreflight: false,
           maxRetries: 5,
         });
       } catch (err: any) {
@@ -234,7 +234,7 @@ export function PhantomPayProvider({ children }: { children: ReactNode }) {
         
         const signed = await signTransaction(tx as never);
         signature = await connection.sendRawTransaction((signed as Transaction).serialize(), {
-          skipPreflight: true,
+          skipPreflight: false,
           maxRetries: 5,
         });
       }

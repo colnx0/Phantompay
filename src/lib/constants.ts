@@ -9,8 +9,8 @@ export const TEE_VALIDATOR_DEVNET = "MTEWGuqxUpYZGFJQcp8tLN7x5v9BSeoFHYWQQ3n3xzo
 
 // ─── Well-known Devnet Mints (for demo) ───────────────────────────────────────
 
-// Devnet USDC-like token for testing
-export const DEVNET_USDC_MINT = "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU";
+// Devnet USDC-like token (Commonly used address that is pre-initialized in TEE)
+export const DEVNET_USDC_MINT = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";
 
 // ─── App Config ───────────────────────────────────────────────────────────────
 
