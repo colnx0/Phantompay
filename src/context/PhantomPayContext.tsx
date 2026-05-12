@@ -288,10 +288,25 @@ export function PhantomPayProvider({ children }: { children: ReactNode }) {
         const rawAmount = Math.round(uiAmount * 1_000_000);
         const res = await buildDeposit(publicKey.toBase58(), DEVNET_USDC_MINT, rawAmount);
         const sig = await signAndSend(res);
-        updateTxRecord(record.id, { status: "confirmed", txSignature: sig });
-        
-        // Wait a few seconds for the rollup to index the base-chain deposit
+                updateTxRecord(record.id, { status: "confirmed", txSignature: sig });
+
+        // Wait a few seconds for the rollup to index the base‑chain deposit
         await new Promise(r => setTimeout(r, 3000));
+        // Wait a few seconds for the rollup to index the base‑chain deposit
+        await new Promise(r => setTimeout(r, 3000));
+        // Poll private balance until it increases (max 8 attempts, 2 s interval)
+        let attempts = 8;
+        const start = privateBalance?.uiAmount || 0;
+        while (attempts > 0) {
+          const priv = await getPrivateBalance(publicKey.toBase58(), DEVNET_USDC_MINT, authToken?.token).catch(() => null);
+          if (priv && (priv.uiAmount || 0) > start) {
+            setPrivateBalance(priv);
+            break;
+          }
+          attempts--;
+          await new Promise(r => setTimeout(r, 2000));
+        }
+        // Ensure both balances are refreshed for UI consistency
         await refreshBalances();
         return sig;
       } catch (err: unknown) {
