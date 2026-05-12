@@ -15,6 +15,7 @@ export default function Home() {
     isAuthenticated,
     mintInitialized,
     initializeMint,
+    isInitializingMint,
     error,
     clearError,
     refreshBalances,
@@ -156,9 +157,15 @@ export default function Home() {
                   </div>
                   <button
                     onClick={initializeMint}
-                    className="shrink-0 px-5 py-2.5 bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 text-sm font-medium rounded-xl border border-blue-500/30 transition-colors relative z-10"
+                    disabled={isInitializingMint}
+                    className="shrink-0 px-5 py-2.5 bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 text-sm font-medium rounded-xl border border-blue-500/30 transition-colors relative z-10 disabled:opacity-50"
                   >
-                    Initialize Mint
+                    {isInitializingMint ? (
+                      <div className="flex items-center gap-2">
+                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                        Initializing...
+                      </div>
+                    ) : "Initialize Mint"}
                   </button>
                 </motion.div>
               )}

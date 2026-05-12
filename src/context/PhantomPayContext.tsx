@@ -54,6 +54,7 @@ interface PhantomPayContextType {
   isDepositing: boolean;
   isSending: boolean;
   isWithdrawing: boolean;
+  isInitializingMint: boolean;
 
   // Error
   error: string | null;
@@ -89,6 +90,7 @@ export function PhantomPayProvider({ children }: { children: ReactNode }) {
   const [isDepositing, setIsDepositing] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [isWithdrawing, setIsWithdrawing] = useState(false);
+  const [isInitializingMint, setIsInitializingMint] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const clearError = useCallback(() => setError(null), []);
@@ -155,13 +157,15 @@ export function PhantomPayProvider({ children }: { children: ReactNode }) {
         setPrivateBalance(priv);
       }
 
-      // Check mint initialization
-      const initialized = await isMintInitialized(DEVNET_USDC_MINT).catch((err) => {
-        console.error("Mint init check failed:", err);
-        return null; // Don't assume true if it fails
-      });
-      if (initialized !== null) {
-        setMintInitialized(initialized);
+      // Check mint initialization (only if we don't already know it's true)
+      if (mintInitialized !== true) {
+        const initialized = await isMintInitialized(DEVNET_USDC_MINT).catch((err) => {
+          console.warn("Mint init check failed (ignoring):", err);
+          return null;
+        });
+        if (initialized !== null) {
+          setMintInitialized(initialized);
+        }
       }
 
       // Check API health
@@ -194,23 +198,15 @@ export function PhantomPayProvider({ children }: { children: ReactNode }) {
 
       const connection = new Connection(rpcUrl, "confirmed");
       
-      // Fetch a fresh blockhash right before signing to prevent 'Expired' errors
+      // Fetch a fresh blockhash
       const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash("confirmed");
-      
       const txBytes = Buffer.from(res.transactionBase64, "base64");
 
       let signature: string;
       try {
-        // Handle Versioned Transaction
+        // Try Versioned Transaction first
         const vtx = VersionedTransaction.deserialize(txBytes);
-        
-        // Inject the fresh blockhash
-        // Note: This only works because the API returns an unsigned transaction
-        if (vtx.message.version === 0 || vtx.message.version === "legacy") {
-           (vtx.message as any).recentBlockhash = blockhash;
-        } else {
-           (vtx.message as any).recentBlockhash = blockhash;
-        }
+        vtx.message.recentBlockhash = blockhash;
 
         const signed = await signTransaction(vtx as never);
         signature = await connection.sendRawTransaction((signed as VersionedTransaction).serialize(), {
@@ -218,17 +214,14 @@ export function PhantomPayProvider({ children }: { children: ReactNode }) {
           maxRetries: 5,
         });
       } catch (err) {
-        console.warn("Versioned transaction failed, falling back to legacy:", err);
+        console.warn("Versioned transaction failed or not supported, falling back to legacy:", err);
         const tx = Transaction.from(txBytes);
-        
-        // Inject fresh blockhash and settings
         tx.recentBlockhash = blockhash;
         tx.lastValidBlockHeight = lastValidBlockHeight;
         tx.feePayer = publicKey;
         
-        // Add compute budget and priority fee to legacy tx
-        tx.add(ComputeBudgetProgram.setComputeUnitLimit({ units: 400_000 }));
-        tx.add(ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 10_000 }));
+        // Add priority fees to ensure landing on congested devnet
+        tx.add(ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 50_000 }));
         
         const signed = await signTransaction(tx as never);
         signature = await connection.sendRawTransaction((signed as Transaction).serialize(), {
@@ -247,27 +240,34 @@ export function PhantomPayProvider({ children }: { children: ReactNode }) {
     [publicKey, signTransaction]
   );
 
-     // Initialize Mint – handle already-initialized case gracefully
-   const initializeMint = useCallback(async (): Promise<boolean> => {
-     // If we already know the mint is initialized, skip the API call
-     if (mintInitialized) return true;
-     if (!publicKey) return false;
-     try {
-       const res = await buildInitializeMint(publicKey.toBase58(), DEVNET_USDC_MINT);
-       await signAndSend(res);
-       setMintInitialized(true);
-       return true;
-     } catch (err: unknown) {
-       const message = err instanceof Error ? err.message : "Failed to initialize mint";
-       // If the backend reports that the mint is already initialized, treat it as success
-       if (typeof message === "string" && message.toLowerCase().includes("already")) {
-         setMintInitialized(true);
-         return true;
-       }
-       setError(message);
-       return false;
-     }
-   }, [publicKey, signAndSend, mintInitialized]);
+  const initializeMint = useCallback(async () => {
+    if (!publicKey) return false;
+    setIsInitializingMint(true);
+    setError(null);
+    try {
+      console.log("Initializing mint in TEE...");
+      const res = await buildInitializeMint(publicKey.toBase58(), DEVNET_USDC_MINT);
+      const sig = await signAndSend(res);
+      console.log("Mint init tx sent:", sig);
+      
+      // Wait for indexing
+      await new Promise(r => setTimeout(r, 4000));
+      setMintInitialized(true);
+      await refreshBalances();
+      return true;
+    } catch (err: unknown) {
+      console.error("Initialize mint error:", err);
+      const message = err instanceof Error ? err.message : String(err);
+      if (message.toLowerCase().includes("already")) {
+        setMintInitialized(true);
+        return true;
+      }
+      setError(message);
+      return false;
+    } finally {
+      setIsInitializingMint(false);
+    }
+  }, [publicKey, signAndSend, refreshBalances]);
 
 
 
@@ -294,25 +294,25 @@ export function PhantomPayProvider({ children }: { children: ReactNode }) {
         updateTxRecord(record.id, { status: "confirmed", txSignature: sig });
 
         // Initial wait for rollup indexing
-        await new Promise(r => setTimeout(r, 3000));
-        // Poll private balance until it increases (max 8 attempts, 2 s interval)
-        let attempts = 8;
+        console.log("Deposit confirmed on-chain. Waiting for TEE indexing...");
+        await new Promise(r => setTimeout(r, 5000));
+        
+        // Poll private balance until it increases (max 10 attempts, 2.5 s interval)
+        let attempts = 10;
         const start = privateBalance?.uiAmount || 0;
         while (attempts > 0) {
-          // If we have an auth token, query the private balance directly
+          console.log(`Polling TEE balance... (Attempts remaining: ${attempts})`);
           if (authToken) {
             const priv = await getPrivateBalance(publicKey.toBase58(), DEVNET_USDC_MINT, authToken.token).catch(() => null);
             if (priv && (priv.uiAmount || 0) > start) {
+              console.log("TEE balance updated!", priv.uiAmount);
               setPrivateBalance(priv);
               break;
             }
           }
-          // Fallback to full refresh (covers public + private)
-          await refreshBalances();
           attempts--;
-          await new Promise(r => setTimeout(r, 2000));
+          await new Promise(r => setTimeout(r, 2500));
         }
-        // Ensure UI is fully synced
         await refreshBalances();
         return sig;
       } catch (err: unknown) {
@@ -446,6 +446,7 @@ export function PhantomPayProvider({ children }: { children: ReactNode }) {
     isDepositing,
     isSending,
     isWithdrawing,
+    isInitializingMint,
     error,
     clearError,
   };
